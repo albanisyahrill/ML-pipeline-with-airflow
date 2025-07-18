@@ -1,0 +1,8 @@
+kagglehub
+tensorflow
+scikit-learn
+minio
+numpy
+pangres
+pillow
+streamlit

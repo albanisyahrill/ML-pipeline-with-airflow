@@ -1,7 +1,3 @@
-"""
-Training and evaluation utilities for Airflow ML pipeline.
-Handles model training, evaluation, and model storage to MinIO.
-"""
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 import tensorflow as tf
 from airflow.exceptions import AirflowException
@@ -71,9 +67,6 @@ def training_evaluation_model(image_size):
         y_pred = model.predict(X_test)
         y_pred = np.argmax(y_pred, axis=1)
         y_true = np.argmax(y_test, axis=1)
-
-        print(y_pred)
-        print(y_true)
 
         # Print classification report
         print(classification_report(y_true, y_pred))

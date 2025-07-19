@@ -4,5 +4,5 @@ scikit-learn
 minio
 numpy
 pangres
-pillow
 streamlit
+huggingface-hub

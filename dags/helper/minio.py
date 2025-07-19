@@ -6,10 +6,6 @@ import pickle
 from io import BytesIO
 from tensorflow.keras.models import load_model
 
-"""
-Helper module for MinIO operations, including dataset and model file upload/download for Airflow ML pipelines.
-"""
-
 def get_minio_client():
     minio = BaseHook.get_connection('minio')
     minio_client = Minio(
@@ -59,23 +55,20 @@ class CustiomMinio:
             for file in files:
                 try:
                     file_path = os.path.join(root, file)
-                    img_path = os.path.relpath(file_path, folder_path)
-                    print(f'Uploading file: {img_path}')
+                    relative_path = os.path.relpath(file_path, folder_path).replace('\\', '/')
+                    print(f'Uploading file: {relative_path}')
 
-                    local_file_path = os.path.join(root, file)
-
-                    if not os.path.isfile(local_file_path):
-                        print(f'⚠️ Skipping non-file: {local_file_path}')
+                    if not os.path.isfile(file_path):
+                        print(f'⚠️ Skipping non-file: {file_path}')
                         skipped_files += 1
                         continue
 
-                    relative_path = os.path.relpath(file_path, folder_path).replace('\\', '/')
                     full_object_path = f'{object_name}/{relative_path}'
 
                     minio_client.fput_object(
                         bucket_name=bucket_name ,
                         object_name=full_object_path,
-                        file_path=local_file_path,
+                        file_path=file_path,
                     )
 
                     uploaded_files += 1

@@ -1,7 +1,3 @@
-"""
-Data extraction and storage utilities for Airflow ML pipeline.
-Handles bucket creation, dataset download, and validation in MinIO.
-"""
 from airflow.decorators import task
 import kagglehub
 import os

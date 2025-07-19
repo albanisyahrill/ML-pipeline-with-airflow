@@ -1,12 +1,8 @@
-"""
-DAG for preprocessing image data and storing processed data in MinIO for the ML pipeline.
-"""
 from airflow.decorators import dag
 from data_preprocessing.utils.preprocess import image_preprocessing
 from pendulum import datetime
 from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
-from airflow.models import Variable
 
 @dag(
     start_date=datetime(2025, 7, 1),

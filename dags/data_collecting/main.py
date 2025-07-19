@@ -1,6 +1,3 @@
-"""
-DAG for collecting data and storing it in MinIO for the ML pipeline.
-"""
 from airflow.decorators import dag, task_group
 from pendulum import datetime
 from airflow.operators.trigger_dagrun import TriggerDagRunOperator

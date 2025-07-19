@@ -1,11 +1,7 @@
-"""
-DAG for training and evaluating the ML model, then triggering deployment.
-"""
 from airflow.decorators import dag
 from pendulum import datetime
 from training_and_evaluation.utils.train_and_eval import training_evaluation_model
 from airflow.operators.trigger_dagrun import TriggerDagRunOperator
-from airflow.models import Variable
 
 @dag(
     start_date=datetime(2025, 7, 1),

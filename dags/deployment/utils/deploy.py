@@ -1,93 +1,76 @@
-from tensorflow.keras.applications.inception_v3 import preprocess_input
-import streamlit as st
-from PIL import Image
-import json
 from helper.minio import CustiomMinio
-from tensorflow.keras.preprocessing.image import load_img, img_to_array
-from airflow.models import Variable
-from tensorflow.keras.applications.inception_v3 import preprocess_input
-from airflow.models import Variable
+from airflow.exceptions import AirflowException
+import os
+from huggingface_hub import login, HfApi, create_repo
+from airflow.decorators import task
 
-def preprocess_image(image, image_size, preprocess_input):
+
+def login_huggingface_hub():
     """
-    Preprocesses an input image for model prediction.
+    Authenticate to Hugging Face Hub using a token from the environment variable 'HUGGINGFACE_TOKEN'.
+    Raises an error if the token is not set.
+    """
+    token = os.getenv("HUGGINGFACE_TOKEN")
+    if not token:
+        raise ValueError("HUGGINGFACE_TOKEN environment variable is not set.")
 
-    Args:
-        image (PIL.Image): The input image to preprocess.
-        image_size (tuple): The target size (height, width) for resizing the image.
-        preprocess_input (callable): Function to further preprocess the image for the model.
+    login(token=token)
+
+def load_model():
+    """
+    Retrieve the trained Keras model from MinIO and save it to disk.
 
     Returns:
-        np.ndarray: The preprocessed image as a numpy array, ready for model input.
+        str: Path to the directory containing the saved model file.
     """
-    image = load_img(image, target_size=image_size)
-    img = img_to_array(image)
-    img = np.expand_dims(img, axis=0)
-    preprocess_img = preprocess_input(img)
+    model = model = CustiomMinio._get_model_results('model-results', 'model.keras', 'model.keras')
+    # Create a temporary directory to store the model file
+    model_dir = "/tmp/model_folder"
+    os.makedirs(model_dir, exist_ok=True)
 
-    return preprocess_img
+    # Save the Keras model to the directory
+    model_path = os.path.join(model_dir, 'model.keras')
+    model.save(model_path)
 
-def predict_image(model, uploaded_file, image_size, class_indices, preprocess_image, preprocess_input):
+    return model_dir
+
+
+def push_to_hf_hub(model_folder_path):
     """
-    Predicts the class of an uploaded image using the provided model and preprocessing functions.
+    Push the exported model folder to the Hugging Face Hub repository.
 
     Args:
-        model (keras.Model): The trained Keras model for prediction.
-        uploaded_file (UploadedFile): The uploaded image file from Streamlit.
-        image_size (tuple): The target size (height, width) for resizing the image.
-        class_indices (dict): Mapping of class names to indices.
-        preprocess_image (callable): Function to preprocess the image.
-        preprocess_input (callable): Function to further preprocess the image for the model.
-
-    Returns:
-        str: The predicted class label for the input image.
+        model_folder_path (str): Path to the folder containing the saved model file(s).
     """
-    preprocess_img = preprocess_image(uploaded_file, image_size)
-    predictions = model.predict(preprocess_img)
-    predicted_class_idx = np.argmax(predictions)
-    labels = list(class_indices)
-    predicted_class_label = labels[predicted_class_idx]
-        
-    return predicted_class_label
-
-def create_streamlit_ui():
-    """
-    Loads the trained model from MinIO and runs a Streamlit UI for image upload and inference.
-
-    This function sets up the Streamlit interface, handles image upload, runs prediction,
-    and displays the result to the user.
-    """
-    image_size = (299, 299)
-    class_indices = Variable.get('class_indices')
-    # Load the trained model from MinIO
-    model = CustiomMinio._get_model_results('model-results', 'model.keras', 'downloaded_model.keras')
-
-    # Set the page title
-    st.title('Age Classification Based on Face')
-
-    # Add a description
-    st.write('Upload a face photo to predict the age group')
-
-    # File uploader for image input
-    uploaded_file = st.file_uploader(
-        "Choose an image...",
-        type=['jpg', 'jpeg', 'png']
+    repo_id = 'albanisyahril/model_ml_pipeline_with_airflow'
+    api = HfApi()
+    # Create the repo if it doesn't exist
+    create_repo(repo_id, exist_ok=True)
+    # Upload the entire folder to the repo
+    api.upload_folder(
+        folder_path=model_folder_path,
+        repo_id=repo_id,
+        commit_message='Push tensorflow model from airflow'
     )
 
-    if uploaded_file is not None:
-        try:
-            # Display the uploaded image
-            image = Image.open(uploaded_file)
-            st.image(image, caption='Uploaded Image', width=300, use_container_width=True)
 
-            # Perform prediction
-            with st.spinner('Predicting...'):
-                predicted_image = predict_image(model, uploaded_file, image_size, class_indices, preprocess_image, preprocess_input)
+@task
+def execute_push():
+    """
+    Airflow task to authenticate, retrieve the trained model from MinIO, save it to disk,
+    and upload it to Hugging Face Hub.
+    """
+    try:
+        # Authenticate to Hugging Face Hub
+        login_huggingface_hub()
 
-            # Display the result
-            st.success('Prediction successful!')
-            st.write(f'This is: {predicted_image}')
+        # Save the Keras model to disk in the temporary directory and get the model directory
+        model_dir = load_model()
 
-        except Exception as e:
-            # Display error message if prediction fails
-            st.error(f'Error: {str(e)}')
+        # Upload the model directory to Hugging Face Hub
+        push_to_hf_hub(model_dir)
+
+        print('Model has been pushed to Hugging Face Hub')
+    except Exception as e:
+        # Raise an AirflowException for any error during the process
+        raise AirflowException(f'Error when push model: {str(e)}')

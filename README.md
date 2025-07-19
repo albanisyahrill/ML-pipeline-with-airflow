@@ -29,7 +29,7 @@ ML Pipeline With Airflow/
 │   │   ├── __init__.py
 │   │   ├── main.py                # Airflow DAG for deployment
 │   │   └── utils/
-│   │       └── deploy.py          # Streamlit UI for inference
+│   │       └── deploy.py          # Push Model To Hugging Face Hub
 │   ├── helper/
 │   │   ├── __init__.py
 │   │   └── minio.py               # MinIO utility functions for all pipeline stages
@@ -59,10 +59,11 @@ ML Pipeline With Airflow/
 - **Logic:** Downloads preprocessed data from MinIO, builds and trains a Keras model (InceptionV3), evaluates performance, and uploads the best model to MinIO.
 - **Key Script:** `dags/training_and_evaluation/utils/train_and_eval.py`
 
-### 4. Deployment
-- **DAG:** `dags/deployment/main.py`
-- **Logic:** Runs a Streamlit UI for model inference, loading the trained model from MinIO.
-- **Key Script:** `dags/deployment/utils/deploy.py`
+### 4. Model Deployment (Hugging Face Hub)
+
+- Once the deployment DAG runs, your trained model will be pushed to the Hugging Face Hub repository: `albanisyahril/model_ml_pipeline_with_airflow`.
+- Ensure you have set the `HUGGINGFACE_TOKEN` environment variable in your Docker Compose or Airflow environment for authentication.
+- The model will be available for download and sharing directly from Hugging Face Hub.
 
 ### 5. Helper Utilities
 - **MinIO Helper:** `dags/helper/minio.py`  
@@ -85,7 +86,7 @@ ML Pipeline With Airflow/
    - Triggers the Deployment DAG.
 
 4. **Deployment DAG**  
-   - Runs Streamlit UI for live inference using the trained model from MinIO.
+   - Push model to Hugging Face Hub using the trained model from MinIO.
 
 ---
 
@@ -119,9 +120,9 @@ This will start Airflow, MinIO, and any other required services.
 - Access the Airflow UI (typically at [http://localhost:8080](http://localhost:8080)).
 - Trigger the `data_collecting` DAG. The rest of the pipeline will be triggered automatically in sequence.
 
-### 4. Accessing the Streamlit UI
+### 4. Push Model To Hugging Face Hub
 
-- Once the deployment DAG runs, Streamlit will be available at [http://localhost:8501](http://localhost:8501) (or the port you configured).
+- Once the deployment DAG runs, model will be push to Hugging Face Hub.
 
 ---
 
@@ -139,14 +140,14 @@ This will start Airflow, MinIO, and any other required services.
 - **training_evaluation_model:** Loads processed data, builds and trains a Keras model, evaluates, and uploads the best model to MinIO.
 
 ### `dags/deployment/utils/deploy.py`
-- **preprocess_image:** Preprocesses an image for model input.
-- **predict_image:** Runs inference on an uploaded image.
-- **create_streamlit_ui:** Loads the model from MinIO and runs the Streamlit UI for inference.
+- **login_huggingface_hub:** Authenticates to Hugging Face Hub using a token from the environment.
+- **push_to_hf_hub:** Pushes the exported model folder to the Hugging Face Hub repository.
+- **execute_push:** Airflow task that loads the model from MinIO, saves it to disk, and uploads it to Hugging Face Hub.
 
 ### `dags/helper/minio.py`
 - Provides static methods for:
-  - Uploading/downloading datasets, pickled data, and model files to/from MinIO.
-  - Ensures all pipeline stages interact with MinIO in a consistent, robust way.
+- Uploading/downloading datasets, pickled data, and model files to/from MinIO.
+- Ensures all pipeline stages interact with MinIO in a consistent, robust way.
 
 ---
 
@@ -161,8 +162,7 @@ This will start Airflow, MinIO, and any other required services.
 ## Troubleshooting
 
 - **MinIO connection issues:** Ensure MinIO is running and accessible from Airflow.
-- **Module import errors:** Make sure `PYTHONPATH` is set correctly in your Airflow/BashOperator environment.
-- **Streamlit not found:** Ensure Streamlit is installed in your Airflow container and the PATH is set correctly.
+- **Hugging Face Hub deployment issues:** Ensure the `HUGGINGFACE_TOKEN` environment variable is set correctly and that you have the necessary permissions on the Hugging Face Hub repository.
 
 ---
 
@@ -185,7 +185,6 @@ MIT License
 
 - [Apache Airflow](https://airflow.apache.org/)
 - [MinIO](https://min.io/)
-- [Streamlit](https://streamlit.io/)
 - [Keras / TensorFlow](https://keras.io/)
 
 ---

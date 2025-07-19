@@ -1,7 +1,3 @@
-"""
-Data preprocessing utilities for Airflow ML pipeline.
-Handles image data loading, preprocessing, and storage to MinIO.
-"""
 from airflow.exceptions import AirflowException
 from airflow.decorators import task
 from helper.minio import CustiomMinio
@@ -40,7 +36,8 @@ def image_preprocessing(datagen, image_size, batch_size=32):
             directory=test_data,
             target_size=image_size,
             batch_size=batch_size,
-            class_mode='categorical'
+            class_mode='categorical',
+            shuffle=False
         )
 
         # Get one batch of data from each generator (or loop for all data if needed)

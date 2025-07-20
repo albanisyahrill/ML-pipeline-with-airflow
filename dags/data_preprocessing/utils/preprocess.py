@@ -2,6 +2,30 @@ from airflow.exceptions import AirflowException
 from airflow.decorators import task
 from helper.minio import CustiomMinio
 import pickle
+import numpy as np
+
+def generator_to_arrays(generator):
+    """
+    Converts all batches from a Keras ImageDataGenerator iterator into full numpy arrays.
+
+    Iterates through the entire generator (using its __len__ and __getitem__ methods),
+    collecting all image and label batches, and concatenates them into single numpy arrays
+    for X (images) and y (labels).
+
+    Args:
+        generator (DirectoryIterator): A Keras ImageDataGenerator iterator, such as returned by flow_from_directory.
+
+    Returns:
+        tuple: (X, y) where X is a numpy array of all images, and y is a numpy array of all labels.
+    """
+    X_list, y_list = [], []
+    # Iterate through all batches in the generator
+    for i in range(len(generator)):
+        X, y = generator[i]
+        X_list.append(X)
+        y_list.append(y)
+        
+    return np.concatenate(X_list), np.concatenate(y_list)
 
 @task
 def image_preprocessing(datagen, image_size, batch_size=32):
@@ -39,10 +63,18 @@ def image_preprocessing(datagen, image_size, batch_size=32):
             class_mode='categorical',
             shuffle=False
         )
+        
+        print("Train class indices:", train_data_gen.class_indices)
+        print("Test class indices:", test_data_gen.class_indices)
 
-        # Get one batch of data from each generator (or loop for all data if needed)
-        X_train, y_train = next(train_data_gen)
-        X_test, y_test = next(test_data_gen)
+        # Convert all batches from the train dan test data generator into full numpy arrays
+        X_train, y_train = generator_to_arrays(train_data_gen)
+        X_test, y_test = generator_to_arrays(test_data_gen)
+
+
+        print("y_train shape:", y_train.shape)
+        print("y_test shape:", y_test.shape)
+        print("Sample y_train:", y_train[:5])
 
         # Pickle the arrays (numpy arrays) for storage
         train_pickle_data = pickle.dumps((X_train, y_train))

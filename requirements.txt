@@ -1,8 +1,8 @@
 kagglehub
+pendulum
 tensorflow
 scikit-learn
 minio
 numpy
-pangres
-streamlit
 huggingface-hub
+pillow

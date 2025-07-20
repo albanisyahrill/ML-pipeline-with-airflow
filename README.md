@@ -36,7 +36,7 @@ ML Pipeline With Airflow/
 │
 ├── docker-compose.yml             # Docker Compose for Airflow, MinIO, etc.
 ├── Dockerfile                     # Custom Dockerfile for Airflow image
-├── requirements.txt               # Python dependencies (Airflow, ML, Streamlit, etc.)
+├── requirements.txt               # Python dependencies (Airflow, Tensorflow, Hugging Face Hub etc.)
 ├── start.sh                       # Startup script for the environment
 ```
 
